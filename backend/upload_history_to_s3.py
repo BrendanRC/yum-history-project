@@ -21,7 +21,7 @@ def get_package_history(db_path='/var/lib/dnf/history.sqlite'):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT t.id, t.dt_begin, t.cmdline, t.loginuid,
+            SELECT t.id, t.dt_begin, t.cmdline,
                    ti.action, r.name, r.version, r.release, r.arch
             FROM trans t
             LEFT JOIN trans_item ti ON t.id = ti.trans_id
@@ -31,14 +31,14 @@ def get_package_history(db_path='/var/lib/dnf/history.sqlite'):
         
         transactions = {}
         for row in cursor.fetchall():
-            trans_id, timestamp, cmdline, loginuid, action, name, version, release, arch = row
+            trans_id, timestamp, cmdline, action, name, version, release, arch = row
             
             if trans_id not in transactions:
                 transactions[trans_id] = {
                     'transaction_id': trans_id,
                     'timestamp': datetime.fromtimestamp(timestamp).isoformat(),
                     'command': cmdline,
-                    'user_id': loginuid,
+                    'user_id': 'root',
                     'packages': []
                 }
             
