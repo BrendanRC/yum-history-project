@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Yum History Viewer</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .loading { text-align: center; padding: 20px; }
+        .sync-btn { margin: 10px 0; padding: 10px; background: #007cba; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Yum Package History</h1>
+    <button class="sync-btn" onclick="syncData()">Sync from S3</button>
+    <div id="loading" class="loading">Loading...</div>
+    <table id="historyTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>Transaction ID</th>
+                <th>Timestamp</th>
+                <th>Command</th>
+                <th>User ID</th>
+                <th>Package</th>
+                <th>Version</th>
+                <th>Architecture</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="historyBody">
+        </tbody>
+    </table>
+
+    <script>
+        function loadData() {
+            fetch('/api/yum-history/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    if (data.error) {
+                        document.getElementById('loading').innerHTML = 'Error: ' + data.error;
+                        document.getElementById('loading').style.display = 'block';
+                        return;
+                    }
+                    
+                    const tbody = document.getElementById('historyBody');
+                    tbody.innerHTML = '';
+                    data.data.forEach(record => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).textContent = record.transaction_id || '';
+                        row.insertCell(1).textContent = record.timestamp || '';
+                        row.insertCell(2).textContent = record.command || '';
+                        row.insertCell(3).textContent = record.user_id || 'N/A';
+                        row.insertCell(4).textContent = record.package_name || '';
+                        row.insertCell(5).textContent = record.package_version || '';
+                        row.insertCell(6).textContent = record.package_arch || '';
+                        row.insertCell(7).textContent = record.action || '';
+                    });
+                    
+                    document.getElementById('historyTable').style.display = 'table';
+                })
+                .catch(error => {
+                    document.getElementById('loading').innerHTML = 'Error loading data: ' + error;
+                });
+        }
+
+        function syncData() {
+            document.getElementById('loading').innerHTML = 'Syncing from S3...';
+            document.getElementById('loading').style.display = 'block';
+            
+            fetch('/api/sync-s3/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Sync error: ' + data.error);
+                    } else {
+                        alert('Data synced successfully!');
+                        loadData();
+                    }
+                })
+                .catch(error => {
+                    alert('Sync failed: ' + error);
+                });
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
