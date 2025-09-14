@@ -1,35 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yum History Viewer</title>
-    <style>
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .loading { text-align: center; padding: 20px; }
-        .sync-btn { margin: 10px 0; padding: 10px; background: #007cba; color: white; border: none; cursor: pointer; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Yum Package History</h1>
-    <button class="sync-btn" onclick="syncData()">Sync from S3</button>
-    <div id="loading" class="loading">Loading...</div>
-    <table id="historyTable" style="display:none;">
-        <thead>
-            <tr>
-                <th>Transaction ID</th>
-                <th>Timestamp</th>
-                <th>Command</th>
-                <th>User ID</th>
-                <th>Package</th>
-                <th>Version</th>
-                <th>Architecture</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="historyBody">
-        </tbody>
-    </table>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Yum Package History</h1>
+            
+            <button 
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 mb-6"
+                onclick="syncData()"
+            >
+                <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Sync from S3
+            </button>
+            
+            <div id="loading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">Loading...</p>
+            </div>
+            
+            <div id="historyTable" class="hidden overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Command</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Architecture</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
     <script>
         function loadData() {
@@ -38,34 +54,47 @@
                 .then(data => {
                     document.getElementById('loading').style.display = 'none';
                     if (data.error) {
-                        document.getElementById('loading').innerHTML = 'Error: ' + data.error;
+                        document.getElementById('loading').innerHTML = 
+                            '<div class="text-red-600 text-center py-8"><p>Error: ' + data.error + '</p></div>';
                         document.getElementById('loading').style.display = 'block';
                         return;
                     }
                     
                     const tbody = document.getElementById('historyBody');
                     tbody.innerHTML = '';
-                    data.data.forEach(record => {
+                    data.data.forEach((record, index) => {
                         const row = tbody.insertRow();
-                        row.insertCell(0).textContent = record.transaction_id || '';
-                        row.insertCell(1).textContent = record.timestamp || '';
-                        row.insertCell(2).textContent = record.command || '';
-                        row.insertCell(3).textContent = record.user_id || 'N/A';
-                        row.insertCell(4).textContent = record.package_name || '';
-                        row.insertCell(5).textContent = record.package_version || '';
-                        row.insertCell(6).textContent = record.package_arch || '';
-                        row.insertCell(7).textContent = record.action || '';
+                        row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                        
+                        const cells = [
+                            record.transaction_id || '',
+                            record.timestamp || '',
+                            record.command || '',
+                            record.user_id || 'N/A',
+                            record.package_name || '',
+                            record.package_version || '',
+                            record.package_arch || '',
+                            record.action || ''
+                        ];
+                        
+                        cells.forEach(cellData => {
+                            const cell = row.insertCell();
+                            cell.className = 'px-4 py-3 text-sm text-gray-900';
+                            cell.textContent = cellData;
+                        });
                     });
                     
-                    document.getElementById('historyTable').style.display = 'table';
+                    document.getElementById('historyTable').classList.remove('hidden');
                 })
                 .catch(error => {
-                    document.getElementById('loading').innerHTML = 'Error loading data: ' + error;
+                    document.getElementById('loading').innerHTML = 
+                        '<div class="text-red-600 text-center py-8"><p>Error loading data: ' + error + '</p></div>';
                 });
         }
 
         function syncData() {
-            document.getElementById('loading').innerHTML = 'Syncing from S3...';
+            document.getElementById('loading').innerHTML = 
+                '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><p class="mt-2 text-gray-600">Syncing from S3...</p></div>';
             document.getElementById('loading').style.display = 'block';
             
             fetch('/api/sync-s3/')
